@@ -133,6 +133,5 @@ def dirNav(currentDir, prompt):
         elif commands[0] not in ['exit', 'Exit']:
             print(f'Not a valid option.')
 
-
         loopCount += 1
 print(dirNav(currentDir, 'Enter "go" and the name of folder to change directories, or use "select [filename]" to select a file: '))
