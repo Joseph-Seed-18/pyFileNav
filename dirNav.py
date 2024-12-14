@@ -1,137 +1,136 @@
 import os
 
-esc = '\x1B'
-bold = esc + '[1m'
-path = bold + esc + '[38;5;0m' +esc + '[48;5;255m'
-reset = esc + '[0m'
-fileCol1 = bold + esc + '[38;5;5m'
-fileCol2 = bold + esc + '[48;5;5m' + esc + '[38;5;0m'
-folderCol1 = bold + esc + '[38;5;2m'
-folderCol2 = bold + esc + '[48;5;2m' + esc + '[38;5;0m'
-clear = esc + '[2J' + esc + '[H'
 
-start = False
-print(clear + reset, end='')
-
-while (not(start)):
-    currentDir = input(f'{bold}Enter path, or press ENTER to use CWD: ')
-    if currentDir == '':
-        currentDir = os.getcwd()
-    elif currentDir.endswith('/'):
-        currentDir = currentDir.removesuffix('/')
-
-    try:
-        dirScan = os.scandir(currentDir)
-        start = True
-        dirScan.close()
-    except(PermissionError):
-        print('\nDirectory not accessible; permission denied.')
-    except(FileNotFoundError):
-        print('\nNot a valid directory.')
+def init_colors() -> dict[str, str]:
+    esc = '\x1B'
+    reset = esc + '[0m'
+    clear = esc + '[2J' + esc + '[H'
+    bold = esc + '[1m'
+    path_col = bold + esc + '[38;5;0m' + esc + '[48;5;255m'
+    file_col1 = bold + esc + '[38;5;5m'
+    file_col2 = bold + esc + '[48;5;5m' + esc + '[38;5;0m'
+    folder_col1 = bold + esc + '[38;5;2m'
+    folder_col2 = bold + esc + '[48;5;2m' + esc + '[38;5;0m'
+    
+    return {"esc": esc, "clear": clear, "bold": bold, "path_col": path_col, "reset": reset, "file_col1": file_col1,
+            "file_col2": file_col2, "folder_col1": folder_col1, "folder_col2": folder_col2}
 
 
-def dirNav(currentDir, prompt):
-    choice, error = '', ''
-    loopCount = 0
-    while(choice != 'exit'):
-
-        if error != '':
-                print(f'{clear}{error}\n[*] {path}{currentDir}{reset}')
-                error = ''
-        else:
-            print(f'{clear}[*] {path}{currentDir}{reset}')
-
-        try:
-            with os.scandir(currentDir) as dirScan: #Short for 'directory entry'
-                files, folders = [], []
-
-                for entry in dirScan: #Takes entries from directory scanner and puts into list
-                    if(entry.is_file()): #Need to keep lists separate for sorted output and commands
-                        files.append(entry.name)
-                    elif(entry.is_dir()):
-                        folders.append(entry.name)
-
-                if len(folders) == 0 and len(files) == 0 :
-                    print(fr'{bold} \-> No content in this directory')
-                else:
-                    for i in range(0, len(folders)):
-                        if i % 2 == 0:
-                            print(fr'{folderCol1} \-> {folders[i]}{reset}')
-                        else:
-                            print(fr' {folderCol2}\-> {folders[i]}{reset}')
-
-                    for i in range(0, len(files)):
-                        if i % 2 == 0:
-                            print(fr'{fileCol1} \-> {files[i]}{reset}')
-                        else:
-                            print(fr' {fileCol2}\-> {fileCol2}{files[i]}{reset}')
-
-        except(PermissionError):
-            error = 'Directory not accessible; permission denied.'
-            print(f'{clear}{bold}{error}\n[*] {path}{currentDir}{reset}')
-            error = ''
-
-        choice = input(f'\n{bold}{prompt}')
-        commands = choice.split(" ")
+class Menu:
+    def init(input_dir: str, prompt: str) -> str:
+        curr_dir, colors, choice = input_dir, init_colors(), ''
         
-        if choice in ['exit', 'Exit']:
-            break
-
-
-        elif (commands[0] == 'go') and (commands[1] in folders):
-            currentDir = f'{currentDir}/{commands[1]}'
-
-        
-        elif (commands[0] == 'go'):
-            #dirs = commands[1].split('/') #Returns all directories and '..' instances from 'commands[1]' in ordered list
-            dirs, fileCount, dirAdd, newDir, tempDir = (commands[1].split('/')), 0, [], (currentDir.split('/')), ''
-            #newDir = currentDir.split('/') #Returns list of folders in current path, which will be rebuilt with 'dirs'
-
-            if ('..' in commands[1]) or ('../' in commands[1]):
-                dotCount = 0
-
-
-            for i in range(0, len(dirs)):
-                if (('..' in commands[1]) or ('../' in commands[1])) and (dirs[i] == '..'): #Counts '..' instances for removing files from 'currentDir'
-                    dotCount += 1
-                elif dirs[i] == '': #Have to remove '' characters to prevent FileNotFound error
-                    dirs.remove(dirs[i])
-                    i -= 1 #Dangerous yes, but needed to remain in list bounds
-                else: #Counts directories inputted to append to 'currentDir'
-                    fileCount += 1
-                    dirAdd.append(dirs[i])
-
-
-            if ('..' in commands[1]) or ('../' in commands[1]):
-                for i in range(0, dotCount): #Removes folders from 'newDir' based off of 'dotCount' for rebuilding 'currentDir'
-                    newDir.remove(newDir[len(newDir) - 1])
-
-            if(fileCount >= 1): #Appends any folders inputted, if any
-                for i in range(0, len(dirAdd)): #Appends new folders to 'newDir' based off of 'fileCount' 
-                    newDir.append(dirAdd[i])
-
-            try: #Catches FileNotFound error
-                for i in range(1, len(newDir)): #Rebuilds path string with removed directories
-                    tempDir += f'/{newDir[i]}'
-                dirScan = os.scandir(tempDir)
-                dirScan.close()
+        while choice not in ['Exit', 'exit']:
+            dir_entries = Menu.print_dir(curr_dir, colors)
+            files, folders = dir_entries[0], dir_entries[1]
             
-            except (FileNotFoundError):
-                error = 'Directory does not exist.'
-
-            except(PermissionError):
-                error = 'Directory not accessible; permission denied.'
-
-            if error == '':
-                currentDir = tempDir
-
-
-        elif commands[1] in files: #This for if user mistakes file for directory, or attempts to select file improperly
-            print('You have selected a file, not a directory. To select a file, type "select", and the name of the file.')
-
+            choice = input(
+                f'\n{colors["bold"]}Use {colors["folder_col1"]}"go [folderName]"{colors["reset"]}{colors["bold"]} to switch folders, and {colors["file_col1"]}"select [filename]"{colors["reset"]}{colors["bold"]} to select a file. Enter "exit" to exit.\n{colors["file_col1"]}{prompt}')
+            commands = choice.split(" ", maxsplit=1)
+            
+            if choice in ['Exit', 'exit']:
+                break
+            
+            elif (commands[0] == 'go') and (commands[1] in folders) and (
+              Menu.check_dir(f'{curr_dir}/{commands[1]}', colors)):
+                if curr_dir == '/':
+                    curr_dir = f'{curr_dir}{commands[1]}'
+                else:
+                    curr_dir = f'{curr_dir}/{commands[1]}'
+            
+            elif commands[0] == 'go':
+                curr_dir = Menu.switch_dir(curr_dir, commands[1])
+            
+            elif commands[0] in files:  # This is for if the user selects file improperly.
+                print(
+                    f'This is a file, not a directory; directories are highlighted in {colors["folder_col1"]} green {colors["reset"]}.\n{colors["bold"]}To select a file, remember to use the "select" keyword and then the name of the file.\n')
+            
+            elif commands[0] == 'select' and commands[1] in files:
+                print(colors["reset"], end='')
+                return curr_dir + '/' + commands[1]
+            
+            elif commands[0] not in ['Exit', 'exit']:
+                print(f'Not a valid option.')
+    
+    def switch_dir(old_dir: str, new_dir: str) -> str:
+        dirs = new_dir.split('/')
+        temp_dir = old_dir.split('/')
+        file_count, dot_count, dir_add = 0, 0, []
         
-        elif commands[0] not in ['exit', 'Exit']:
-            print(f'Not a valid option.')
-
-        loopCount += 1
-print(dirNav(currentDir, 'Enter "go" and the name of folder to change directories, or use "select [filename]" to select a file: '))
+        for i in range(len(dirs) - 1, -1, -1):  # Parses directory inputted.
+            if (dirs[i] == '..') and (('..' in new_dir) or (
+              '../' in new_dir)):  # Counts '..' instances for removing files from the current directory later
+                dot_count += 1
+            
+            elif dirs[i] == '':  # Have to remove '' characters to prevent FileNotFound error
+                dirs.remove(dirs[i])
+            
+            else:  # Counts # of directories inputted to append to 'currentDir'
+                file_count += 1
+                dir_add.append(dirs[i])
+        
+        if '..' in new_dir or '../' in new_dir:
+            for i in range(0,
+                           dot_count):  # Removes folders from 'new_dir' based off of 'dot_count' for rebuilding 'currentDir'
+                temp_dir.remove(temp_dir[len(temp_dir) - 1])
+        
+        if file_count >= 1:  # Appends any folders inputted, if any
+            for folder in dir_add:  # Appends new folders to 'new_dir' based off of 'file_count'
+                temp_dir.append(folder)
+        
+        new_dir = ''
+        for i in range(1, len(temp_dir)):
+            new_dir += f'/{temp_dir[i]}'
+        
+        if new_dir == '':  # This allows for user to use '..' to go up to '/' directory.
+            new_dir = '/'
+        
+        if Menu.check_dir(new_dir, init_colors()):
+            return new_dir
+        else:
+            return old_dir
+    
+    def check_dir(input_dir: str,
+                  colors: dict[
+                      str, str]) -> bool:  # Checks if directory exists and is accessible, and prints out error message if not.
+        try:
+            os.scandir(input_dir)
+        
+        except (FileNotFoundError, NotADirectoryError):
+            print(f'{colors["clear"]}Not a valid directory.')
+            return False
+        
+        except PermissionError:
+            print(f'{colors["clear"]}Directory not accessible; permission denied.')
+            return False
+        
+        return True
+    
+    def print_dir(input_dir: str, colors: dict[str, str]) -> list:  # Prints all files and folders in directory
+        files, folders, file_count, folder_count = [], [], 0, 0
+        
+        if Menu.check_dir(input_dir, colors):
+            curr_dir = os.scandir(input_dir)
+            for entry in curr_dir:
+                if entry.is_file():  # Need to keep lists separate for sorted output and commands
+                    files.append(entry.name)
+                elif entry.is_dir():
+                    folders.append(entry.name)
+            
+            print(f'{colors["reset"]}[*] {colors["path_col"]}{input_dir}{colors["reset"]}')
+            if len(folders) == 0 and len(files) == 0:
+                print(fr'{colors["bold"]} \-> No content in this directory')
+            
+            else:
+                for i in range(0, len(folders)):
+                    if i % 2 == 0:
+                        print(fr'{colors["folder_col1"]} \-> {folders[i]}{colors["reset"]}')
+                    else:
+                        print(fr' {colors["folder_col2"]}\-> {folders[i]}{colors["reset"]}')
+                for i in range(0, len(files)):
+                    if i % 2 == 0:
+                        print(fr'{colors["file_col1"]} \-> {files[i]}{colors["reset"]}')
+                    else:
+                        print(fr' {colors["file_col2"]}\-> {files[i]}{colors["reset"]}')
+        
+        return [files, folders]
