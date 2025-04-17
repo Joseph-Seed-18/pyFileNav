@@ -1,7 +1,8 @@
 import os
 
 
-def init_colors() -> dict[str, str]:
+def init_colors() -> dict[str, str]:  # Creates a dict containing ANSI escape codes for formatting terminal output.
+    # Put codes in this function for easier organization, and to make it easier to add additional codes.
     esc = '\x1B'
     reset = esc + '[0m'
     clear = esc + '[2J' + esc + '[H'
@@ -16,7 +17,7 @@ def init_colors() -> dict[str, str]:
             "file_col2": file_col2, "folder_col1": folder_col1, "folder_col2": folder_col2}
 
 
-class Menu:
+class Menu:  # Put all functionality for FilePicker interface in this class.
     def init(input_dir: str, prompt: str) -> str:
         curr_dir, colors, choice = input_dir, init_colors(), ''
         
@@ -51,48 +52,49 @@ class Menu:
             
             elif commands[0] not in ['Exit', 'exit']:
                 print(f'Not a valid option.')
+        
+        return "None"
     
     def switch_dir(old_dir: str, new_dir: str) -> str:
-        dirs = new_dir.split('/')
-        temp_dir = old_dir.split('/')
-        file_count, dot_count, dir_add = 0, 0, []
+        dirs = new_dir.split('/')  # Splits user-inputted directory by folder, and puts into list.
+        temp_dir = old_dir.split('/')  # Splits old directory by folder, and puts into list.
         
-        for i in range(len(dirs) - 1, -1, -1):  # Parses directory inputted.
+        file_count, dot_count, dir_add = 0, 0, []
+        for i in range(len(dirs) - 1, -1, -1):  # Parses directory inputted to determine how to modify path string.
             if (dirs[i] == '..') and (('..' in new_dir) or (
-              '../' in new_dir)):  # Counts '..' instances for removing files from the current directory later
+              '../' in new_dir)):  # Counts '..' instances for removing files from the old directory string
                 dot_count += 1
             
-            elif dirs[i] == '':  # Have to remove '' characters to prevent FileNotFound error
+            elif dirs[i] == '':  # Checks for and removes '' characters to prevent FileNotFound error
                 dirs.remove(dirs[i])
             
-            else:  # Counts # of directories inputted to append to 'currentDir'
+            else:  # Counts number of directories to append to path string
                 file_count += 1
-                dir_add.append(dirs[i])
+                dir_add.append(dirs[i])  # Appends new folders from inputted directory, and adds to this list
         
-        if '..' in new_dir or '../' in new_dir:
-            for i in range(0,
-                           dot_count):  # Removes folders from 'new_dir' based off of 'dot_count' for rebuilding 'currentDir'
+        if dot_count > 0:  # Removes folders from old directory list based off of 'dot_count' for rebuilding path string later
+            for i in range(0, dot_count):  # If dot_count == 0, operation is skipped
                 temp_dir.remove(temp_dir[len(temp_dir) - 1])
         
-        if file_count >= 1:  # Appends any folders inputted, if any
-            for folder in dir_add:  # Appends new folders to 'new_dir' based off of 'file_count'
+        if file_count >= 1:  # Appends new folders to list that need to be added to path string, if any
+            for folder in dir_add:
                 temp_dir.append(folder)
         
         new_dir = ''
-        for i in range(1, len(temp_dir)):
+        for i in range(1, len(temp_dir)):  # Appends new folders to path string
             new_dir += f'/{temp_dir[i]}'
         
-        if new_dir == '':  # This allows for user to use '..' to go up to '/' directory.
+        if new_dir == '':  # This accounts for if user uses '..' to go up to '/' directory.
             new_dir = '/'
         
-        if Menu.check_dir(new_dir, init_colors()):
+        if Menu.check_dir(new_dir, init_colors()):  # Checks if new directory is a valid location.
             return new_dir
         else:
             return old_dir
     
     def check_dir(input_dir: str,
                   colors: dict[
-                      str, str]) -> bool:  # Checks if directory exists and is accessible, and prints out error message if not.
+                      str, str]) -> bool:  # Checks if directory exists and is accessible, and prints out specific error message if not.
         try:
             os.scandir(input_dir)
         
@@ -106,22 +108,24 @@ class Menu:
         
         return True
     
-    def print_dir(input_dir: str, colors: dict[str, str]) -> list:  # Prints all files and folders in directory
-        files, folders, file_count, folder_count = [], [], 0, 0
+    def print_dir(input_dir: str,
+                  colors: dict[str, str]) -> list:  # Prints and returns all files and folders in directory
+        files, folders, = [], []
         
         if Menu.check_dir(input_dir, colors):
-            curr_dir = os.scandir(input_dir)
-            for entry in curr_dir:
-                if entry.is_file():  # Need to keep lists separate for sorted output and commands
+            curr_dir = os.scandir(input_dir)  # Scans inputted directory.
+            for entry in curr_dir:  # Sorts entries from iterator into folder list and file list for sorted output.
+                if entry.is_file():
                     files.append(entry.name)
                 elif entry.is_dir():
                     folders.append(entry.name)
             
-            print(f'{colors["reset"]}[*] {colors["path_col"]}{input_dir}{colors["reset"]}')
-            if len(folders) == 0 and len(files) == 0:
+            print(
+                f'{colors["reset"]}[*] {colors["path_col"]}{input_dir}{colors["reset"]}')  # Prints out path of current directory.
+            if len(folders) == 0 and len(files) == 0:  # Prints special message for if directory is empty.
                 print(fr'{colors["bold"]} \-> No content in this directory')
             
-            else:
+            else:  # Prints out content in directory, folders before files.
                 for i in range(0, len(folders)):
                     if i % 2 == 0:
                         print(fr'{colors["folder_col1"]} \-> {folders[i]}{colors["reset"]}')
