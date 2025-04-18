@@ -42,7 +42,7 @@ class Menu:  # Put all functionality for FilePicker interface in this class.
             elif commands[0] == 'go':
                 curr_dir = Menu.switch_dir(curr_dir, commands[1])
             
-            elif commands[0] in files:  # This is for if the user selects file improperly.
+            elif commands[0] in files:  # This is for if the user selects folder instead of file.
                 print(
                     f'This is a file, not a directory; directories are highlighted in {colors["folder_col1"]} green {colors["reset"]}.\n{colors["bold"]}To select a file, remember to use the "select" keyword and then the name of the file.\n')
             
@@ -61,6 +61,8 @@ class Menu:  # Put all functionality for FilePicker interface in this class.
         
         file_count, dot_count, dir_add = 0, 0, []
         for i in range(len(dirs) - 1, -1, -1):  # Parses directory inputted to determine how to modify path string.
+            # Started at end to prevent from skipping items in list when removing.
+            
             if (dirs[i] == '..') and (('..' in new_dir) or (
               '../' in new_dir)):  # Counts '..' instances for removing files from the old directory string
                 dot_count += 1
@@ -81,7 +83,7 @@ class Menu:  # Put all functionality for FilePicker interface in this class.
                 temp_dir.append(folder)
         
         new_dir = ''
-        for i in range(1, len(temp_dir)):  # Appends new folders to path string
+        for i in range(1, len(temp_dir)):  # Appends new folders to path string. Starts at 1 to skip '' at index 0
             new_dir += f'/{temp_dir[i]}'
         
         if new_dir == '':  # This accounts for if user uses '..' to go up to '/' directory.
@@ -122,6 +124,7 @@ class Menu:  # Put all functionality for FilePicker interface in this class.
             
             print(
                 f'{colors["reset"]}[*] {colors["path_col"]}{input_dir}{colors["reset"]}')  # Prints out path of current directory.
+            
             if len(folders) == 0 and len(files) == 0:  # Prints special message for if directory is empty.
                 print(fr'{colors["bold"]} \-> No content in this directory')
             
@@ -131,6 +134,7 @@ class Menu:  # Put all functionality for FilePicker interface in this class.
                         print(fr'{colors["folder_col1"]} \-> {folders[i]}{colors["reset"]}')
                     else:
                         print(fr' {colors["folder_col2"]}\-> {folders[i]}{colors["reset"]}')
+                
                 for i in range(0, len(files)):
                     if i % 2 == 0:
                         print(fr'{colors["file_col1"]} \-> {files[i]}{colors["reset"]}')
