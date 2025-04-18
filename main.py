@@ -2,7 +2,7 @@
 
 import os
 
-from fp import Menu as FP
+from fp import Menu as Picker
 
 start, currentDir = False, os.getcwd()
 print('\x1B' + '[2J' + '\x1B' + '[H' + '\x1B' + '[0m',
@@ -26,4 +26,4 @@ while not start:  # Menu for testing function
     except(FileNotFoundError, NotADirectoryError):
         print('\nNot a valid directory.')
 
-print(FP.init(currentDir, '[>>>] Select a file: '))
+print(Picker.init(currentDir, '[>>>] Select a file: '))
